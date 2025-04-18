@@ -1,4 +1,5 @@
 #include <Novice.h>
+#include <cmath>
 
 
 struct Vector3 {
@@ -32,6 +33,13 @@ void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label);
 /// <param name="label">名前</param>
 void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label);
 
+/// <summary>
+/// 4x4行列の積
+/// </summary>
+/// <param name="m1">掛ける行列1</param>
+/// <param name="m2">掛ける行列2</param>
+/// <returns></returns>
+Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2);
 
 
 const char kWindowTitle[] = "LE2B_01_アカミネ_レン_MT3_";
@@ -102,4 +110,18 @@ void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label
 				x + column * kColumnWidth, y + row * kRowHeight + kRowHeight, "%6.02f", matrix.m[row][column]);
 		}
 	}
+}
+
+// 4x4行列の積
+Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2) {
+	Matrix4x4 result;
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			result.m[i][j] = 0;
+			for (int k = 0; k < 4; k++) {
+				result.m[i][j] += m1.m[i][k] * m2.m[k][j];
+			}
+		}
+	}
+	return result;
 }
