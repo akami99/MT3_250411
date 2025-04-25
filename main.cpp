@@ -3,6 +3,9 @@
 #include <cassert>
 
 
+static const int kWindownWidth = 1280;
+static const int kWindowHeight = 720;
+
 struct Vector3 {
 	float x;
 	float y;
@@ -50,7 +53,6 @@ Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2);
 /// <returns>変換させた座標</returns>
 Vector3 Transform(const Vector3& vector, Matrix4x4& matrix);
 
-
 /// <summary>
 /// X軸回転行列
 /// </summary>
@@ -72,7 +74,6 @@ Matrix4x4 MakeRotateYMatrix(float angle);
 /// <returns>Z軸回転行列</returns>
 Matrix4x4 MakeRotateZMatrix(float angle);
 
-
 /// <summary>
 /// 3次元アフィン変換行列
 /// </summary>
@@ -81,7 +82,6 @@ Matrix4x4 MakeRotateZMatrix(float angle);
 /// <param name="translate">移動量</param>
 /// <returns>3次元アフィン行列</returns>
 Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate);
-
 
 /// <summary>
 /// 透視投影行列
@@ -119,7 +119,7 @@ const char kWindowTitle[] = "LE2B_01_アカミネ_レン_MT3_";
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// ライブラリの初期化
-	Novice::Initialize(kWindowTitle, 1280, 720);
+	Novice::Initialize(kWindowTitle, kWindownWidth, kWindowHeight);
 
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
