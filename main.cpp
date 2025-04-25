@@ -42,7 +42,7 @@ void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label
 Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2);
 
 // 1.透視投影行列
-Matrix4x4 MakePerspectiveProjection(float fovY, float aspectRatio, float nearClip, float farClip);
+Matrix4x4 MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip, float farClip);
 
 // 2.正射影行列
 Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float bottom, float nearClip, float farClip);
@@ -63,7 +63,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 orthographicMatrix =
 		MakeOrthographicMatrix(-160.0f, 160.0f, 200.0f, 300.0f, 0.0f, 1000.0f);
 	Matrix4x4 perspectiveFovMatrix =
-		MakePerspectiveProjection(0.63f, 1.33f, 0.1f, 1000.0f);
+		MakePerspectiveFovMatrix(0.63f, 1.33f, 0.1f, 1000.0f);
 	Matrix4x4 viewportMatrix =
 		MakeViewportMatrix(100.0f, 200.0f, 600.0f, 300.0f, 0.0f, 1.0f);
 
@@ -149,7 +149,7 @@ Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2) {
 }
 
 // 1.透視投影行列
-Matrix4x4 MakePerspectiveProjection(float fovY, float aspectRatio, float nearClip, float farClip) {
+Matrix4x4 MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip, float farClip) {
 	Matrix4x4 result{};
 	//(1/a)*(1/tan(fovY/2)=1/(a*tan(fovY/2))
 	result.m[0][0] = 1.0f / (aspectRatio * tanf(fovY / 2.0f));
