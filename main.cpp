@@ -53,6 +53,14 @@ void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label
 Vector3 Add(const Vector3& v1, const Vector3& v2);
 
 /// <summary>
+/// 減算
+/// </summary>
+/// <param name="v1">引かれるベクトル</param>
+/// <param name="v2">引くベクトル</param>
+/// <returns>ベクトルの差</returns>
+Vector3 Subtract(const Vector3& v1, const Vector3& v2);
+
+/// <summary>
 /// 4x4行列の積
 /// </summary>
 /// <param name="m1">掛ける行列1</param>
@@ -267,6 +275,15 @@ Vector3 Add(const Vector3& v1, const Vector3& v2) {
 	result.x = v1.x + v2.x;
 	result.y = v1.y + v2.y;
 	result.z = v1.z + v2.z;
+	return result;
+}
+
+// 減算
+Vector3 Subtract(const Vector3& v1, const Vector3& v2) {
+	Vector3 result;
+	result.x = v1.x - v2.x;
+	result.y = v1.y - v2.y;
+	result.z = v1.z - v2.z;
 	return result;
 }
 
