@@ -18,6 +18,11 @@ struct Matrix4x4 {
 	float m[4][4];
 };
 
+struct Segment {
+	Vector3 origin; //!<< 始点
+	Vector3 diff;   //!<< 終点への差分ベクトル
+};
+
 struct Sphere {
 	Vector3 center; //!< 中心点
 	float radius;   //!< 半径
@@ -53,6 +58,14 @@ void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label
 Vector3 Add(const Vector3& v1, const Vector3& v2);
 
 /// <summary>
+/// 減算
+/// </summary>
+/// <param name="v1">引かれるベクトル</param>
+/// <param name="v2">引くベクトル</param>
+/// <returns>ベクトルの差</returns>
+Vector3 Subtract(const Vector3& v1, const Vector3& v2);
+
+/// <summary>
 /// 4x4行列の積
 /// </summary>
 /// <param name="m1">掛ける行列1</param>
@@ -67,6 +80,12 @@ Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2);
 /// <param name="matrix">変換させる行列</param>
 /// <returns>変換させた座標</returns>
 Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix);
+
+// 正射影ベクトル
+Vector3 Project(const Vector3& v1, const Vector3& v2);
+
+// 最近接点
+Vector3 ClosestPoint(const Vector3& point, const Segment& segment);
 
 /// <summary>
 /// X軸回転行列
@@ -153,7 +172,7 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 Matrix4x4 Inverse(const Matrix4x4& m);
 
 
-const char kWindowTitle[] = "LE2B_01_アカミネ_レン_MT3_";
+const char kWindowTitle[] = "LE2B_01_アカミネ_レン_MT3_02_00";
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -161,7 +180,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, kWindowWidth, kWindowHeight);
 
-	
+
+	Segment segment{ {-2.0f, -1.0f, 0.0f}, {3.0f, 2.0f, 2.0f} };
+	Vector3 point{ -1.5f, 0.6f, 0.6f };
+
+	Vector3 project = Project(Subtract(point, segment.origin), segment.diff);
+	Vector3 closestPoint = ClosestPoint(point, segment);
+
+	Sphere pointSphere{ point, 0.01f };// 1cmの弾を描画
+	Sphere closestPointSphere{ closestPoint, 0.01f };
+
 
 	// カメラの設定
 	Vector3 cameraTranslate{ 0.0f, 1.9f, -6.49f };
@@ -173,6 +201,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, static_cast<float>(kWindowWidth), static_cast<float>(kWindowHeight), 0.0f, 1.0f);
+
+
+	// 線の始点と終点
+	Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
+	Vector3 end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
+
 
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
@@ -191,6 +225,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
+		project = Project(Subtract(point, segment.origin), segment.diff);
+		closestPoint = ClosestPoint(point, segment);
+
+		pointSphere = { point, 0.01f };// 1cmの弾を描画
+		closestPointSphere = { closestPoint, 0.01f };
+
+		start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
+		end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
 
 
 #ifdef _DEBUG
@@ -213,13 +255,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
 
+		DrawSphere(pointSphere, viewProjectionMatrix, viewportMatrix, RED);
+		DrawSphere(closestPointSphere, viewProjectionMatrix, viewportMatrix, BLACK);
+
+		Novice::DrawLine(
+			static_cast<int>(start.x), static_cast<int>(start.y), 
+			static_cast<int>(end.x), static_cast<int>(end.y),
+			WHITE);
 
 
 #ifdef _DEBUG
 		// デバッグウィンドウ
 		ImGui::Begin("Window");
-		ImGui::DragFloat3("CameraTranslate", &cameraTranslate.x, 0.01f);
-		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
+		//ImGui::DragFloat3("CameraTranslate", &cameraTranslate.x, 0.01f);
+		//ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
+		ImGui::DragFloat3("Point", &point.x, 0.01f);
+		ImGui::DragFloat3("Segment origin", &segment.origin.x, 0.01f);
+		ImGui::DragFloat3("Segment diff", &segment.diff.x, 0.01f);
+		ImGui::DragFloat3("Project", &project.x, 0.01f);
 		ImGui::End();
 
 #endif // _DEBUG
@@ -270,6 +323,15 @@ Vector3 Add(const Vector3& v1, const Vector3& v2) {
 	return result;
 }
 
+// 減算
+Vector3 Subtract(const Vector3& v1, const Vector3& v2) {
+	Vector3 result;
+	result.x = v1.x - v2.x;
+	result.y = v1.y - v2.y;
+	result.z = v1.z - v2.z;
+	return result;
+}
+
 // 4x4行列の積
 Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2) {
 	Matrix4x4 result;
@@ -311,6 +373,53 @@ Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix) {
 	result.x /= w;  // w=1がデカルト座標系であるので、w除算することで同次座標をデカルト座標に戻す
 	result.y /= w;
 	result.z /= w;
+	return result;
+}
+
+// 正射影ベクトル
+Vector3 Project(const Vector3& v1, const Vector3& v2) {
+	Vector3 result = {};
+	float nullCheck = (v2.x * v2.x + v2.y * v2.y + v2.z * v2.z);
+	if (nullCheck == 0.0f) {
+		return result;
+	}
+
+	float dotRatio =
+		(v1.x * v2.x + v1.y * v2.y + v1.z * v2.z) /
+		(v2.x * v2.x + v2.y * v2.y + v2.z * v2.z);
+
+	result.x = dotRatio * v2.x;
+	result.y = dotRatio * v2.y;
+	result.z = dotRatio * v2.z;
+	return result;
+}
+
+// 最近接点
+Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
+	Vector3 result = {};
+	Vector3 segVec = segment.diff;
+
+	float segLenSq = segVec.x * segVec.x + segVec.y * segVec.y + segVec.z * segVec.z;
+	if (segLenSq == 0.0f) {
+		return segment.origin;
+	}
+
+	Vector3 pointVec = {
+		point.x - segment.origin.x,
+		point.y - segment.origin.y,
+		point.z - segment.origin.z
+	};
+	float t = (pointVec.x * segVec.x + pointVec.y * segVec.y + pointVec.z * segVec.z) / segLenSq;
+	// 線分内に制限
+	if (t < 0.0f) {
+		t = 0.0f;
+	} else if (t > 1.0f) {
+		t = 1.0f;
+	}
+
+	result.x = segment.origin.x + t * segVec.x;
+	result.y = segment.origin.y + t * segVec.y;
+	result.z = segment.origin.z + t * segVec.z;
 	return result;
 }
 
