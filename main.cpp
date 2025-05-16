@@ -69,6 +69,13 @@ Vector3 Subtract(const Vector3& v1, const Vector3& v2);
 Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2);
 
 /// <summary>
+/// ベクトルの長さ
+/// </summary>
+/// <param name="v">ベクトルの</param>
+/// <returns>ベクトルの長さ</returns>
+float Length(const Vector3& v);
+
+/// <summary>
 /// 座標変換
 /// </summary>
 /// <param name="vector">変換したいベクトル</param>
@@ -128,6 +135,9 @@ Matrix4x4 MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip
 /// <returns>ビューポート行列</returns>
 Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth);
 
+// 球と球の衝突判定関数
+bool IsCollision(const Sphere& s1, const Sphere& s2);
+
 /// <summary>
 /// 球面をデカルト座標に変換
 /// </summary>
@@ -161,7 +171,7 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 Matrix4x4 Inverse(const Matrix4x4& m);
 
 
-const char kWindowTitle[] = "LE2B_01_アカミネ_レン_MT3_";
+const char kWindowTitle[] = "LE2B_01_アカミネ_レン_MT3_02-01";
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -170,6 +180,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Novice::Initialize(kWindowTitle, kWindowWidth, kWindowHeight);
 
 	
+	// 球
+	const int kSphereSum = 2;
+	Sphere sphere[kSphereSum];
+	sphere[0] = { {0.0f, 0.0f, 0.0f}, {0.6f} };
+	sphere[1] = { {0.8f, 0.0f, 1.0f}, {0.4f} };
+
+	uint32_t collor[kSphereSum] = { {WHITE}, {WHITE} };
+
 
 	// カメラの設定
 	Vector3 cameraTranslate{ 0.0f, 1.9f, -6.49f };
@@ -199,6 +217,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
+		if (IsCollision(sphere[0], sphere[1])) {
+			collor[0] = RED;
+		} else {
+			collor[0] = WHITE;
+		}
 
 
 #ifdef _DEBUG
@@ -220,14 +243,26 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
-
-
+		for (int i = 0; i < kSphereSum; ++i) {
+			DrawSphere(sphere[i], viewProjectionMatrix, viewportMatrix, collor[i]);
+		}
 
 #ifdef _DEBUG
 		// デバッグウィンドウ
 		ImGui::Begin("Window");
+		
+		ImGui::TextWrapped("Camera");
+
 		ImGui::DragFloat3("CameraTranslate", &cameraTranslate.x, 0.01f);
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
+		
+		ImGui::TextWrapped("Sphere");
+
+		ImGui::DragFloat3("Sphere[0].Center", &sphere[0].center.x, 0.01f);
+		ImGui::DragFloat("Sphere[0].Radius", &sphere[0].radius, 0.01f);
+
+		ImGui::DragFloat3("Sphere[1].Center", &sphere[1].center.x, 0.01f);
+		ImGui::DragFloat("Sphere[1].Radius", &sphere[1].radius, 0.01f);
 		ImGui::End();
 
 #endif // _DEBUG
@@ -298,6 +333,13 @@ Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2) {
 			}
 		}
 	}
+	return result;
+}
+
+// ベクトルの長さ
+float Length(const Vector3& v) {
+	float result{};
+	result = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
 	return result;
 }
 
@@ -414,6 +456,18 @@ Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, f
 	result.m[3][2] = minDepth;
 	result.m[3][3] = 1.0f;
 	return result;
+}
+
+// 球と球の衝突判定関数
+bool IsCollision(const Sphere& s1, const Sphere& s2) {
+	// 2つの球の中心点間の距離を求める
+	float distance = Length(Subtract(s2.center, s1.center));
+	// 半径の合計よりも短ければ衝突
+	if (distance <= s1.radius + s2.radius) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 // 球面をデカルト座標に変換
