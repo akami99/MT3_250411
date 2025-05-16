@@ -69,6 +69,36 @@ Vector3 Subtract(const Vector3& v1, const Vector3& v2);
 Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2);
 
 /// <summary>
+/// 内積
+/// </summary>
+/// <param name="v1">ベクトル1</param>
+/// <param name="v2">ベクトル2</param>
+/// <returns>内積</returns>
+float Dot(const Vector3& v1, const Vector3& v2);
+
+/// <summary>
+/// クロス積
+/// </summary>
+/// <param name="v1">ベクトル1</param>
+/// <param name="v2">ベクトル2</param>
+/// <returns>クロス積</returns>
+Vector3 Cross(const Vector3& v1, const Vector3& v2);
+
+/// <summary>
+/// 長さ（ノルム）
+/// </summary>
+/// <param name="v">ベクトル</param>
+/// <returns>長さ（ノルム）</returns>
+float Length(const Vector3& v);
+
+/// <summary>
+/// 正規化
+/// </summary>
+/// <param name="v">ベクトル</param>
+/// <returns>正規化されたベクトル</returns>
+Vector3 Nomalize(const Vector3& v);
+
+/// <summary>
 /// 座標変換
 /// </summary>
 /// <param name="vector">変換したいベクトル</param>
@@ -297,6 +327,45 @@ Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2) {
 				result.m[i][j] += m1.m[i][k] * m2.m[k][j];
 			}
 		}
+	}
+	return result;
+}
+
+// 内積
+float Dot(const Vector3& v1, const Vector3& v2) {
+	float result;
+	result = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+	return result;
+}
+
+// クロス積
+Vector3 Cross(const Vector3& v1, const Vector3& v2) {
+	Vector3 result{};
+	result.x = (v1.y * v2.z) - (v1.z * v2.y);
+	result.y = (v1.z * v2.x) - (v1.x * v2.z);
+	result.z = (v1.x * v2.y) - (v1.y * v2.x);
+	return result;
+}
+
+// 長さ（ノルム）
+float Length(const Vector3& v) {
+	float result;
+	result = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+	return result;
+}
+
+// 正規化
+Vector3 Nomalize(const Vector3& v) {
+	Vector3 result;
+	float length = Length(v);
+	if (length != 0) {
+		result.x = v.x / length;
+		result.y = v.y / length;
+		result.z = v.z / length;
+	} else {
+		result.x = 0;
+		result.y = 0;
+		result.z = 0;
 	}
 	return result;
 }
