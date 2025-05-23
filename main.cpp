@@ -23,6 +23,11 @@ struct Sphere {
 	float radius;   //!< 半径
 };
 
+struct Plane {
+	Vector3 normal; //!< 法線
+	float distance; //!< 距離
+};
+
 static const int kRowHeight = 20;
 static const int kColumnWidth = 60;
 
@@ -67,6 +72,14 @@ Vector3 Subtract(const Vector3& v1, const Vector3& v2);
 /// <param name="m2">掛ける行列2</param>
 /// <returns>行列の積</returns>
 Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2);
+
+/// <summary>
+/// スカラーとベクトルの積
+/// </summary>
+/// <param name="scalar">掛けるスカラー</param>
+/// <param name="vector">掛けるベクトル</param>
+/// <returns>ベクトルの積</returns>
+Vector3 Multiply(const float& scalar, const Vector3& vector);
 
 /// <summary>
 /// 内積
@@ -168,6 +181,13 @@ Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, f
 Vector3 SphericalToCartesian(float radius, float lat, float lon);
 
 /// <summary>
+/// 垂直なベクトルを求める関数
+/// </summary>
+/// <param name="vector">基となるベクトル</param>
+/// <returns>垂直なベクトル</returns>
+Vector3 Perpendicular(const Vector3& vector);
+
+/// <summary>
 /// 球を描画する関数
 /// </summary>
 /// <param name="sphere">球</param>
@@ -175,6 +195,15 @@ Vector3 SphericalToCartesian(float radius, float lat, float lon);
 /// <param name="viewportMatrix">ビューポート行列</param>
 /// <param name="color">色</param>
 void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+
+/// <summary>
+/// 平面の描画関数
+/// </summary>
+/// <param name="plane">平面</param>
+/// <param name="viewProjectionMatrix">ビュー射影行列</param>
+/// <param name="viewportMatrix">ビューポート行列</param>
+/// <param name="color">色</param>
+void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 
 /// <summary>
 /// グリッドを描画する関数
@@ -328,6 +357,15 @@ Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2) {
 			}
 		}
 	}
+	return result;
+}
+
+// スカラーとベクトルの積
+Vector3 Multiply(const float& scalar, const Vector3& vector) {
+	Vector3 result = {};
+	result.x = scalar * vector.x;
+	result.y = scalar * vector.y;
+	result.z = scalar * vector.z;
 	return result;
 }
 
@@ -493,6 +531,14 @@ Vector3 SphericalToCartesian(float radius, float lat, float lon) {
 	return { x, y, z };
 }
 
+// 垂直なベクトルを求める関数
+Vector3 Perpendicular(const Vector3& vector) {
+	if (vector.x != 0.0f || vector.y != 0.0f) {
+		return { -vector.y, vector.x, 0.0f };
+	}
+	return { 0.0f, -vector.z, vector.y };
+}
+
 // 球を描画する関数
 void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
 	const uint32_t kSubdivision = 12;   // 分割数
@@ -525,6 +571,32 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 				static_cast<int>(screenC.x), static_cast<int>(screenC.y), color); // a→c
 		}
 	}
+}
+
+// 平面の描画関数
+void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	Vector3 center = Multiply(plane.distance, plane.normal); // 1
+	Vector3 perpendiculars[4];
+	perpendiculars[0] = Nomalize(Perpendicular(plane.normal));  // 2
+	perpendiculars[1] = { -perpendiculars[0].x, -perpendiculars[0].y, -perpendiculars[0].z };// 3
+	perpendiculars[2] = Cross(plane.normal, perpendiculars[0]); // 4
+	perpendiculars[3] = { -perpendiculars[2].x, -perpendiculars[2].y, -perpendiculars[2].z };// 5
+	// 6
+	Vector3 points[4];
+	for (int32_t index = 0; index < 4; ++index) {
+		Vector3 extend = Multiply(2.0f, perpendiculars[index]);
+		Vector3 point = Add(center, extend);
+		points[index] = Transform(Transform(point, viewProjectionMatrix), viewportMatrix);
+	}
+	// pointsをそれぞれ結んでDrawLineで矩形を描画する。DrawTriangleを使って塗りつぶしても良いが、DepthがないのでMT3では分かりずらい
+	Novice::DrawLine(static_cast<int>(points[0].x), static_cast<int>(points[0].y),
+		static_cast<int>(points[2].x), static_cast<int>(points[2].y), color);
+	Novice::DrawLine(static_cast<int>(points[1].x), static_cast<int>(points[1].y),
+		static_cast<int>(points[3].x), static_cast<int>(points[3].y), color);
+	Novice::DrawLine(static_cast<int>(points[2].x), static_cast<int>(points[2].y),
+		static_cast<int>(points[1].x), static_cast<int>(points[1].y), color);
+	Novice::DrawLine(static_cast<int>(points[3].x), static_cast<int>(points[3].y),
+		static_cast<int>(points[0].x), static_cast<int>(points[0].y), color);
 }
 
 // グリッドを描画する関数
