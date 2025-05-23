@@ -18,6 +18,21 @@ struct Matrix4x4 {
 	float m[4][4];
 };
 
+struct Segment {
+	Vector3 origin; //!< 始点
+	Vector3 diff;   //!< 終点への差分ベクトル
+};
+
+struct Line {
+	Vector3 origin; //!< 始点
+	Vector3 diff;   //!< 終点への差分ベクトル
+};
+
+struct Ray {
+	Vector3 origin; //!< 始点
+	Vector3 diff;   //!< 終点への差分ベクトル
+};
+
 struct Sphere {
 	Vector3 center; //!< 中心点
 	float radius;   //!< 半径
@@ -171,6 +186,9 @@ Matrix4x4 MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip
 /// <returns>ビューポート行列</returns>
 Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth);
 
+// 線と平面の衝突判定
+bool IsCollision(const Segment& segment, const Plane& plane);
+
 /// <summary>
 /// 球面をデカルト座標に変換
 /// </summary>
@@ -220,7 +238,7 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 Matrix4x4 Inverse(const Matrix4x4& m);
 
 
-const char kWindowTitle[] = "LE2B_01_アカミネ_レン_MT3_";
+const char kWindowTitle[] = "LE2B_01_アカミネ_レン_MT3_02-03";
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -229,10 +247,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Novice::Initialize(kWindowTitle, kWindowWidth, kWindowHeight);
 
 	
+	// 線
+	Segment segment{ { -0.45f, 0.41f, 0.0f }, { 1.0f, 0.58f, 0.0f } };
+	// 平面
+	Plane plane{ { 0.0f, 1.0f, 0.0f }, 1.0f };
+
+	// 色
+	uint32_t colars[2] = { WHITE, WHITE }; // 線と平面の色
 
 	// カメラの設定
-	Vector3 cameraTranslate{ 0.0f, 1.9f, -6.49f };
-	Vector3 cameraRotate{ 0.26f, 0.0f, 0.0f };
+	Vector3 cameraTranslate{ 0.0f, 1.5f, -8.49f };
+	Vector3 cameraRotate{ 0.12f, 0.0f, 0.0f };
 
 	Matrix4x4 cameraMatrix = MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, cameraRotate, cameraTranslate);
 	Matrix4x4 viewMatrix = Inverse(cameraMatrix);
@@ -240,6 +265,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, static_cast<float>(kWindowWidth), static_cast<float>(kWindowHeight), 0.0f, 1.0f);
+
+	// 線の始点と終点
+	Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
+	Vector3 end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
+
 
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
@@ -258,6 +288,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
+		// 線の始点と終点
+		start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
+		end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
+
+		// 衝突判定
+		if (IsCollision(segment, plane)) {
+			// 衝突している場合、色を変える
+			colars[0] = RED;
+		} else {
+			// 衝突していない場合、色を元に戻す
+			colars[0] = WHITE;
+		}
 
 
 #ifdef _DEBUG
@@ -279,14 +321,35 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
+		DrawPlane(plane, viewProjectionMatrix, viewportMatrix, colars[1]);
 
+		Novice::DrawLine(
+			static_cast<int>(start.x), static_cast<int>(start.y),
+			static_cast<int>(end.x), static_cast<int>(end.y),
+			colars[0]
+		);
 
 
 #ifdef _DEBUG
 		// デバッグウィンドウ
 		ImGui::Begin("Window");
+		ImGui::Text("Camera");
 		ImGui::DragFloat3("CameraTranslate", &cameraTranslate.x, 0.01f);
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
+		
+		ImGui::Separator();
+
+		ImGui::Text("Plane");
+		ImGui::DragFloat3("Plane. Normalize", &plane.normal.x, 0.01f);
+		plane.normal = Nomalize(plane.normal); // 法線ベクトルを正規化
+		ImGui::DragFloat("Plane. Distance", &plane.distance, 0.01f);
+
+		ImGui::Separator();
+
+		ImGui::Text("Segment");
+		ImGui::DragFloat3("Segment. Origin", &segment.origin.x, 0.01f);
+		ImGui::DragFloat3("Segment. Diff", &segment.diff.x, 0.01f);
+		
 		ImGui::End();
 
 #endif // _DEBUG
@@ -521,6 +584,28 @@ Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, f
 	result.m[3][2] = minDepth;
 	result.m[3][3] = 1.0f;
 	return result;
+}
+
+// 線と平面の衝突判定
+bool IsCollision(const Segment& segment, const Plane& plane) {
+	// まず垂直判定を行うために、法線と線の内積を求める
+	float dot = Dot(plane.normal, segment.diff);
+
+	// 垂直=平行であるので、衝突しているはずがない
+	if (dot == 0.0f) {
+		return false;
+	}
+
+	// tを求める
+	float t = (plane.distance - Dot(segment.origin, plane.normal)) / dot;
+
+	// tの値とその種類によって衝突しているかを判断する
+	if (t >= 0.0f && t <= 1.0f) {
+		// tが0.0f以上1.0f以下なら衝突している
+		return true;
+	} else {
+		return false;
+	}
 }
 
 // 球面をデカルト座標に変換
