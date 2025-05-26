@@ -128,7 +128,7 @@ float Length(const Vector3& v);
 /// </summary>
 /// <param name="v">ベクトル</param>
 /// <returns>正規化されたベクトル</returns>
-Vector3 Nomalize(const Vector3& v);
+Vector3 Normalize(const Vector3& v);
 
 /// <summary>
 /// 座標変換
@@ -412,7 +412,7 @@ float Length(const Vector3& v) {
 }
 
 // 正規化
-Vector3 Nomalize(const Vector3& v) {
+Vector3 Normalize(const Vector3& v) {
 	Vector3 result;
 	float length = Length(v);
 	if (length != 0) {
@@ -596,7 +596,7 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
 	Vector3 center = Multiply(plane.distance, plane.normal); // 1
 	Vector3 perpendiculars[4];
-	perpendiculars[0] = Nomalize(Perpendicular(plane.normal));  // 2
+	perpendiculars[0] = Normalize(Perpendicular(plane.normal));  // 2
 	perpendiculars[1] = { -perpendiculars[0].x, -perpendiculars[0].y, -perpendiculars[0].z };// 3
 	perpendiculars[2] = Cross(plane.normal, perpendiculars[0]); // 4
 	perpendiculars[3] = { -perpendiculars[2].x, -perpendiculars[2].y, -perpendiculars[2].z };// 5
