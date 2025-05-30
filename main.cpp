@@ -3,6 +3,7 @@
 #include <cassert>
 #include <imgui.h>
 #include <numbers>
+#include <algorithm>
 
 
 static const int kWindowWidth = 1280;
@@ -219,6 +220,15 @@ Vector3 Perpendicular(const Vector3& vector);
 /// <param name="viewportMatrix">ビューポート行列</param>
 /// <param name="color">色</param>
 void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+
+/// <summary>
+/// AABBを描画する関数
+/// </summary>
+/// <param name="aabb">AABB1</param>
+/// <param name="viewProjectionMatrix">ビュー射影行列</param>
+/// <param name="viewportMatrix">ビューポート行列</param>
+/// <param name="color">色</param>
+void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 
 /// <summary>
 /// 平面の描画関数
@@ -595,6 +605,84 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 				static_cast<int>(screenC.x), static_cast<int>(screenC.y), color); // a→c
 		}
 	}
+}
+
+// AABBを描画する関数
+void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	// AABBの8つの頂点を求める
+	Vector3 vertices[8] = {
+		{ aabb.min.x, aabb.min.y, aabb.min.z }, // 0
+		{ aabb.min.x, aabb.min.y, aabb.max.z }, // 1
+		{ aabb.min.x, aabb.max.y, aabb.max.z }, // 2
+		{ aabb.min.x, aabb.max.y, aabb.min.z }, // 3
+		{ aabb.max.x, aabb.min.y, aabb.min.z }, // 4
+		{ aabb.max.x, aabb.min.y, aabb.max.z }, // 5
+		{ aabb.max.x, aabb.max.y, aabb.max.z }, // 6
+		{ aabb.max.x, aabb.max.y, aabb.min.z }  // 7
+	};
+
+	// それぞれの頂点をスクリーン座標系に変換
+	for (int i = 0; i < 8; ++i) {
+		vertices[i] = Transform(Transform(vertices[i], viewProjectionMatrix), viewportMatrix);
+	}
+
+	// AABBのエッジを描画する
+	// 12本のエッジを描画する
+	// 0-1, 1-2, 2-3, 3-0, 4-5, 5-6, 6-7, 7-4, 0-4, 1-5, 2-6, 3-7
+
+	// 0-1, 1-2, 2-3, 3-0
+	Novice::DrawLine(
+		static_cast<int>(vertices[0].x), static_cast<int>(vertices[0].y),
+		static_cast<int>(vertices[1].x), static_cast<int>(vertices[1].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[1].x), static_cast<int>(vertices[1].y),
+		static_cast<int>(vertices[2].x), static_cast<int>(vertices[2].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[2].x), static_cast<int>(vertices[2].y),
+		static_cast<int>(vertices[3].x), static_cast<int>(vertices[3].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[3].x), static_cast<int>(vertices[3].y),
+		static_cast<int>(vertices[0].x), static_cast<int>(vertices[0].y), color
+	);
+
+	// 4-5, 5-6, 6-7, 7-4
+	Novice::DrawLine(
+		static_cast<int>(vertices[4].x), static_cast<int>(vertices[4].y),
+		static_cast<int>(vertices[5].x), static_cast<int>(vertices[5].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[5].x), static_cast<int>(vertices[5].y),
+		static_cast<int>(vertices[6].x), static_cast<int>(vertices[6].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[6].x), static_cast<int>(vertices[6].y),
+		static_cast<int>(vertices[7].x), static_cast<int>(vertices[7].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[7].x), static_cast<int>(vertices[7].y),
+		static_cast<int>(vertices[4].x), static_cast<int>(vertices[4].y), color
+	);
+
+	// 0-4, 1-5, 2-6, 3-7
+	Novice::DrawLine(
+		static_cast<int>(vertices[0].x), static_cast<int>(vertices[0].y),
+		static_cast<int>(vertices[4].x), static_cast<int>(vertices[4].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[1].x), static_cast<int>(vertices[1].y),
+		static_cast<int>(vertices[5].x), static_cast<int>(vertices[5].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[2].x), static_cast<int>(vertices[2].y),
+		static_cast<int>(vertices[6].x), static_cast<int>(vertices[6].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[3].x), static_cast<int>(vertices[3].y),
+		static_cast<int>(vertices[7].x), static_cast<int>(vertices[7].y), color
+	);
 }
 
 // 平面の描画関数
