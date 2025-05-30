@@ -3,6 +3,7 @@
 #include <cassert>
 #include <imgui.h>
 #include <numbers>
+#include <algorithm>
 
 
 static const int kWindowWidth = 1280;
@@ -220,6 +221,9 @@ Vector3 Perpendicular(const Vector3& vector);
 /// <param name="color">色</param>
 void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 
+// AABBを描画する関数
+void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+
 /// <summary>
 /// 平面の描画関数
 /// </summary>
@@ -235,6 +239,9 @@ void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const 
 /// <param name="viewProjectionMatrix">ビュー射影行列</param>
 /// <param name="viewportMatrix">ビューポート行列</param>
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
+
+// AABBとAABBの衝突判定関数
+bool IsCollision(const AABB& aabb1, const AABB& aabb2);
 
 /// <summary>
 /// 逆行列
@@ -252,11 +259,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, kWindowWidth, kWindowHeight);
 
-	
+
+	// AABBの初期化
+	AABB aabb1{
+		.min{-0.5f, -0.5f, -0.5f},
+		.max{0.0f, 0.0f, 0.0f},
+	};
+
+	AABB aabb2{
+		.min{0.2f, 0.2f, 0.2f},
+		.max{1.0f, 1.0f, 1.0f},
+	};
+
+	// 色
+	uint32_t colors[2]{ WHITE, WHITE };
 
 	// カメラの設定
-	Vector3 cameraTranslate{ 0.0f, 1.9f, -6.49f };
-	Vector3 cameraRotate{ 0.26f, 0.0f, 0.0f };
+	Vector3 cameraTranslate{ 8.58f, 4.7f, -4.75f };
+	Vector3 cameraRotate{ 0.46f, -1.02f, 0.0f };
 
 	Matrix4x4 cameraMatrix = MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, cameraRotate, cameraTranslate);
 	Matrix4x4 viewMatrix = Inverse(cameraMatrix);
@@ -266,8 +286,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, static_cast<float>(kWindowWidth), static_cast<float>(kWindowHeight), 0.0f, 1.0f);
 
 	// キー入力結果を受け取る箱
-	char keys[256] = {0};
-	char preKeys[256] = {0};
+	char keys[256] = { 0 };
+	char preKeys[256] = { 0 };
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -282,6 +302,28 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
+		// AABBの最小値と最大値を入れ替える
+		//aabb1
+		aabb1.min.x = (std::min)(aabb1.min.x, aabb1.max.x);
+		aabb1.max.x = (std::max)(aabb1.min.x, aabb1.max.x);
+		aabb1.min.y = (std::min)(aabb1.min.y, aabb1.max.y);
+		aabb1.max.y = (std::max)(aabb1.min.y, aabb1.max.y);
+		aabb1.min.z = (std::min)(aabb1.min.z, aabb1.max.z);
+		aabb1.max.z = (std::max)(aabb1.min.z, aabb1.max.z);
+		//aabb2
+		aabb2.min.x = (std::min)(aabb2.min.x, aabb2.max.x);
+		aabb2.max.x = (std::max)(aabb2.min.x, aabb2.max.x);
+		aabb2.min.y = (std::min)(aabb2.min.y, aabb2.max.y);
+		aabb2.max.y = (std::max)(aabb2.min.y, aabb2.max.y);
+		aabb2.min.z = (std::min)(aabb2.min.z, aabb2.max.z);
+		aabb2.max.z = (std::max)(aabb2.min.z, aabb2.max.z);
+
+		// AABBの衝突判定
+		if (IsCollision(aabb1, aabb2)) {
+			colors[0] = RED; // 衝突している場合は赤色
+		} else {
+			colors[0] = WHITE; // 衝突していない場合
+		}
 
 
 #ifdef _DEBUG
@@ -303,14 +345,26 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
+		// AABBの描画
+		DrawAABB(aabb1, viewProjectionMatrix, viewportMatrix, colors[0]);
 
-
+		DrawAABB(aabb2, viewProjectionMatrix, viewportMatrix, colors[1]);
 
 #ifdef _DEBUG
 		// デバッグウィンドウ
 		ImGui::Begin("Window");
 		ImGui::DragFloat3("CameraTranslate", &cameraTranslate.x, 0.01f);
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
+		
+		ImGui::Separator();
+
+		ImGui::Text("AABB");
+
+		ImGui::DragFloat3("aabb1.min", &aabb1.min.x, 0.01f);
+		ImGui::DragFloat3("aabb1.max", &aabb1.max.x, 0.01f);
+		ImGui::DragFloat3("aabb2.min", &aabb2.min.x, 0.01f);
+		ImGui::DragFloat3("aabb2.max", &aabb2.max.x, 0.01f);
+		
 		ImGui::End();
 
 #endif // _DEBUG
@@ -597,6 +651,84 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 	}
 }
 
+// AABBを描画する関数
+void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	// AABBの8つの頂点を求める
+	Vector3 vertices[8] = {
+		{ aabb.min.x, aabb.min.y, aabb.min.z }, // 0
+		{ aabb.min.x, aabb.min.y, aabb.max.z }, // 1
+		{ aabb.min.x, aabb.max.y, aabb.max.z }, // 2
+		{ aabb.min.x, aabb.max.y, aabb.min.z }, // 3
+		{ aabb.max.x, aabb.min.y, aabb.min.z }, // 4
+		{ aabb.max.x, aabb.min.y, aabb.max.z }, // 5
+		{ aabb.max.x, aabb.max.y, aabb.max.z }, // 6
+		{ aabb.max.x, aabb.max.y, aabb.min.z }  // 7
+	};
+
+	// それぞれの頂点をスクリーン座標系に変換
+	for (int i = 0; i < 8; ++i) {
+		vertices[i] = Transform(Transform(vertices[i], viewProjectionMatrix), viewportMatrix);
+	}
+
+	// AABBのエッジを描画する
+	// 12本のエッジを描画する
+	// 0-1, 1-2, 2-3, 3-0, 4-5, 5-6, 6-7, 7-4, 0-4, 1-5, 2-6, 3-7
+
+	// 0-1, 1-2, 2-3, 3-0
+	Novice::DrawLine(
+		static_cast<int>(vertices[0].x), static_cast<int>(vertices[0].y),
+		static_cast<int>(vertices[1].x), static_cast<int>(vertices[1].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[1].x), static_cast<int>(vertices[1].y),
+		static_cast<int>(vertices[2].x), static_cast<int>(vertices[2].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[2].x), static_cast<int>(vertices[2].y),
+		static_cast<int>(vertices[3].x), static_cast<int>(vertices[3].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[3].x), static_cast<int>(vertices[3].y),
+		static_cast<int>(vertices[0].x), static_cast<int>(vertices[0].y), color
+	);
+
+	// 4-5, 5-6, 6-7, 7-4
+	Novice::DrawLine(
+		static_cast<int>(vertices[4].x), static_cast<int>(vertices[4].y),
+		static_cast<int>(vertices[5].x), static_cast<int>(vertices[5].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[5].x), static_cast<int>(vertices[5].y),
+		static_cast<int>(vertices[6].x), static_cast<int>(vertices[6].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[6].x), static_cast<int>(vertices[6].y),
+		static_cast<int>(vertices[7].x), static_cast<int>(vertices[7].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[7].x), static_cast<int>(vertices[7].y),
+		static_cast<int>(vertices[4].x), static_cast<int>(vertices[4].y), color
+	);
+
+	// 0-4, 1-5, 2-6, 3-7
+	Novice::DrawLine(
+		static_cast<int>(vertices[0].x), static_cast<int>(vertices[0].y),
+		static_cast<int>(vertices[4].x), static_cast<int>(vertices[4].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[1].x), static_cast<int>(vertices[1].y),
+		static_cast<int>(vertices[5].x), static_cast<int>(vertices[5].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[2].x), static_cast<int>(vertices[2].y),
+		static_cast<int>(vertices[6].x), static_cast<int>(vertices[6].y), color
+	);
+	Novice::DrawLine(
+		static_cast<int>(vertices[3].x), static_cast<int>(vertices[3].y),
+		static_cast<int>(vertices[7].x), static_cast<int>(vertices[7].y), color
+	);
+}
+
 // 平面の描画関数
 void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
 	Vector3 center = Multiply(plane.distance, plane.normal); // 1
@@ -671,6 +803,17 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 				static_cast<int>(screenEnd.x), static_cast<int>(screenEnd.y), 0xAAAAAAFF);
 		}
 	}
+}
+
+// AABBとAABBの衝突判定関数
+bool IsCollision(const AABB& aabb1, const AABB& aabb2) {
+	// AABBの衝突判定は、各軸での重なりを確認する
+	if (aabb1.max.x >= aabb2.min.x && aabb1.min.x <= aabb2.max.x &&
+		aabb1.max.y >= aabb2.min.y && aabb1.min.y <= aabb2.max.y &&
+		aabb1.max.z >= aabb2.min.z && aabb1.min.z <= aabb2.max.z) {
+		return true; // 衝突している
+	}
+	return false; // 衝突していない
 }
 
 // 逆行列
