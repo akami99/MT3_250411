@@ -38,6 +38,11 @@ struct Sphere {
 	float radius;   //!< 半径
 };
 
+struct AABB {
+	Vector3 min; //!< 最小点
+	Vector3 max; //!< 最大点
+};
+
 struct Triangle {
 	Vector3 vertices[3]; //!< 頂点
 };
