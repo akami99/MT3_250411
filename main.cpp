@@ -246,6 +246,9 @@ void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const 
 /// <param name="viewportMatrix">ビューポート行列</param>
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
 
+// AABBと線分の衝突判定関数
+bool IsCollision(const AABB& aabb, const Segment& segment);
+
 /// <summary>
 /// 逆行列
 /// </summary>
@@ -262,11 +265,29 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, kWindowWidth, kWindowHeight);
 
-	
+
+	// AABBの初期化
+	AABB aabb{
+		.min{-0.5f, -0.5f, -0.5f},
+		.max{0.5f,  0.5f,  0.5f }
+	};
+
+	// 線分の初期化
+	Segment segment{
+		.origin{-0.7f, 0.3f, 0.0f},
+		.diff{2.5f,  -0.5f,  0.0f }
+	};
+
+	// 色
+	uint32_t colors[2]{
+		WHITE, // AABB
+		WHITE  // 線分
+	};
+
 
 	// カメラの設定
-	Vector3 cameraTranslate{ 0.0f, 1.9f, -6.49f };
-	Vector3 cameraRotate{ 0.26f, 0.0f, 0.0f };
+	Vector3 cameraTranslate{ 8.58f, 4.7f, -4.75f };
+	Vector3 cameraRotate{ 0.46f, -1.02f, 0.0f };
 
 	Matrix4x4 cameraMatrix = MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, cameraRotate, cameraTranslate);
 	Matrix4x4 viewMatrix = Inverse(cameraMatrix);
@@ -275,9 +296,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, static_cast<float>(kWindowWidth), static_cast<float>(kWindowHeight), 0.0f, 1.0f);
 
+	// 線分の始点と終点
+	Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
+	Vector3 end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
+
+
 	// キー入力結果を受け取る箱
-	char keys[256] = {0};
-	char preKeys[256] = {0};
+	char keys[256] = { 0 };
+	char preKeys[256] = { 0 };
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -292,6 +318,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
+		// AABBの最小値と最大値を入れ替える
+		aabb.min.x = (std::min)(aabb.min.x, aabb.max.x);
+		aabb.max.x = (std::max)(aabb.min.x, aabb.max.x);
+		aabb.min.y = (std::min)(aabb.min.y, aabb.max.y);
+		aabb.max.y = (std::max)(aabb.min.y, aabb.max.y);
+		aabb.min.z = (std::min)(aabb.min.z, aabb.max.z);
+		aabb.max.z = (std::max)(aabb.min.z, aabb.max.z);
+
+		// 線分の始点と終点を更新
+		start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
+		end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
+
+
+		// AABBと線分の衝突判定
+		if (IsCollision(aabb, segment)) {
+			colors[0] = RED; // 衝突している場合は赤色
+		} else {
+			colors[0] = WHITE; // 衝突していない場合は白色
+		}
 
 
 #ifdef _DEBUG
@@ -313,7 +358,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
+		// AABBの描画
+		DrawAABB(aabb, viewProjectionMatrix, viewportMatrix, colors[0]);
 
+		// 線分の描画
+		Novice::DrawLine(
+			static_cast<int>(start.x), static_cast<int>(start.y),
+			static_cast<int>(end.x), static_cast<int>(end.y), colors[1]
+		);
 
 
 #ifdef _DEBUG
@@ -321,6 +373,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::Begin("Window");
 		ImGui::DragFloat3("CameraTranslate", &cameraTranslate.x, 0.01f);
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
+		
+		ImGui::Separator();
+
+		ImGui::Text("AABB");
+
+		ImGui::DragFloat3("aabb.min", &aabb.min.x, 0.01f);
+		ImGui::DragFloat3("aabb.max", &aabb.max.x, 0.01f);
+
+		ImGui::Separator();
+
+		ImGui::Text("Segment");
+
+		ImGui::DragFloat3("segment.origin", &segment.origin.x, 0.01f);
+		ImGui::DragFloat3("segment.diff", &segment.diff.x, 0.01f);
+
 		ImGui::End();
 
 #endif // _DEBUG
@@ -759,6 +826,131 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 				static_cast<int>(screenEnd.x), static_cast<int>(screenEnd.y), 0xAAAAAAFF);
 		}
 	}
+}
+
+// AABBと線分の衝突判定関数
+bool IsCollision(const AABB& aabb, const Segment& segment) {
+	// 線分の始点と終点を求める
+	Vector3 segmentStart = segment.origin; // 線分の始点
+	Vector3 segmentEnd = Add(segment.origin, segment.diff); // 線分の終点
+
+	// 線分の方向ベクトルと逆数を求める
+	Vector3 direction = Subtract(segmentEnd, segmentStart); // 線分の方向ベクトル
+	Vector3 invDirection = {
+		.x = (direction.x != 0.0f) ? 1.0f / direction.x : std::numeric_limits<float>::infinity(),
+		.y = (direction.y != 0.0f) ? 1.0f / direction.y : std::numeric_limits<float>::infinity(),
+		.z = (direction.z != 0.0f) ? 1.0f / direction.z : std::numeric_limits<float>::infinity(),
+	};
+
+	// --- 1. 線が軸に平行（逆数がinfになる）チェック
+	if (std::isinf(invDirection.x)) {
+		if (segmentStart.x < aabb.min.x || segmentStart.x > aabb.max.x) {
+			return false;
+		}
+	}
+	if (std::isinf(invDirection.y)) {
+		if (segmentStart.y < aabb.min.y || segmentStart.y > aabb.max.y) {
+			return false;
+		}
+	}
+	if (std::isinf(invDirection.z)) {
+		if (segmentStart.z < aabb.min.z || segmentStart.z > aabb.max.z) {
+			return false;
+		}
+	}
+
+	// 衝突点の媒介変数tを求める
+	Vector3 t1 = {
+		.x = (aabb.min.x - segmentStart.x) * invDirection.x, // x軸の衝突点のtMax
+		.y = (aabb.min.y - segmentStart.y) * invDirection.y, // y軸の衝突点のtMax
+		.z = (aabb.min.z - segmentStart.z) * invDirection.z  // z軸の衝突点のtMax
+	};
+	Vector3 t2 = {
+		.x = (aabb.max.x - segmentStart.x) * invDirection.x, // x軸の衝突点のtMin
+		.y = (aabb.max.y - segmentStart.y) * invDirection.y, // y軸の衝突点のtMin
+		.z = (aabb.max.z - segmentStart.z) * invDirection.z  // z軸の衝突点のtMin
+	};
+
+	// --- 2. NaNチェック（方向ベクトルや範囲による誤差）
+	auto checkNaN = [](float v, const char* axis) {
+		if (std::isnan(v)) {
+			Novice::ScreenPrintf(0, 0, "NaN detected on %s axis", axis);
+			return true;
+		}
+		return false;
+		};
+	if (checkNaN(t1.x, "x") || checkNaN(t2.x, "x")) {
+		return false; // x軸
+	}
+	if (checkNaN(t1.y, "y") || checkNaN(t2.y, "y")) {
+		return false; // y軸
+	}
+	if (checkNaN(t1.z, "z") || checkNaN(t2.z, "z")) {
+		return false; // z軸
+	}
+
+	// --- 2-1. AABB範囲内に始点がある & NaNチェック
+	auto checkNaNInside = [](float v, float min, float max, const char* axis) {
+		if (v >= min && v <= max && std::isnan(v)) {
+			Novice::ScreenPrintf(0, 0, "NaN inside AABB on %s axis\n", axis);
+			return true;
+		}
+		return false;
+		};
+	if (checkNaNInside(segmentStart.x, aabb.min.x, aabb.max.x, "x")) {
+		return false;
+	};
+	if (checkNaNInside(segmentStart.y, aabb.min.y, aabb.max.y, "y")) {
+		return false;
+	};
+	if (checkNaNInside(segmentStart.z, aabb.min.z, aabb.max.z, "z")) {
+		return false;
+	};
+
+	// --- 2-2. 始点がminまたはmaxと一致していてNaN
+	auto checkBoundaryNaN = [](float v, float min, float max, const char* axis) {
+		if ((v == min || v == max) && std::isnan(v)) {
+			Novice::ScreenPrintf(0, 0, "NaN on boundary on %s axis\n", axis);
+			return true;
+		}
+		return false;
+		};
+	if (checkBoundaryNaN(segmentStart.x, aabb.min.x, aabb.max.x, "x")) {
+		return false;
+	};
+	if (checkBoundaryNaN(segmentStart.y, aabb.min.y, aabb.max.y, "y")) {
+		return false;
+	};
+	if (checkBoundaryNaN(segmentStart.z, aabb.min.z, aabb.max.z, "z")) {
+		return false;
+	};
+
+	// 衝突範囲を求める
+	Vector3 tNear = {
+		.x = std::fmin(t1.x, t2.x), // x軸の衝突点の近い方
+		.y = std::fmin(t1.y, t2.y), // y軸の衝突点の近い方
+		.z = std::fmin(t1.z, t2.z), // z軸の衝突点の近い方
+	};
+	Vector3 tFar = {
+		.x = std::fmax(t1.x, t2.x), // x軸の衝突点の遠い方
+		.y = std::fmax(t1.y, t2.y), // y軸の衝突点の遠い方
+		.z = std::fmax(t1.z, t2.z), // z軸の衝突点の遠い方
+	};
+
+	// AABBとの衝突点（貫通点）のtが小さい方
+	float tmin = std::fmax(std::fmax(tNear.x, tNear.y), tNear.z);
+	// AABBとの衝突点（貫通点）のtが大きい方
+	float tmax = std::fmin(std::fmin(tFar.x, tFar.y), tFar.z);
+
+	// 線分全体の範囲は [0,1] に限定
+	if (tmax < 0.0f || tmin > 1.0f) {
+		return false; // 線分の範囲外
+	}
+	if (tmin > tmax) {
+		return false; // 衝突していない
+	}
+
+	return true; // 衝突している
 }
 
 // 逆行列
