@@ -246,6 +246,9 @@ void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const 
 /// <param name="viewportMatrix">ビューポート行列</param>
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
 
+// AABBと球の衝突判定関数
+bool IsCollision(const AABB& aabb, const Sphere& sphere);
+
 /// <summary>
 /// 逆行列
 /// </summary>
@@ -262,7 +265,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, kWindowWidth, kWindowHeight);
 
-	
+
+	// AABBの初期化
+	AABB aabb{
+		.min{-0.5f, -0.5f, -0.5f},
+		.max{0.0f, 0.0f, 0.0f},
+	};
+
+	// 球の初期化
+	Sphere sphere{
+		.center{1.0f, 1.0f, 1.0f},
+		.radius{1.0f}
+	};
+
+	// 色
+	uint32_t colors[2]{ WHITE, WHITE };
+
 
 	// カメラの設定
 	Vector3 cameraTranslate{ 0.0f, 1.9f, -6.49f };
@@ -292,6 +310,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
+		// AABBの最小値と最大値を入れ替える
+		aabb.min.x = (std::min)(aabb.min.x, aabb.max.x);
+		aabb.max.x = (std::max)(aabb.min.x, aabb.max.x);
+		aabb.min.y = (std::min)(aabb.min.y, aabb.max.y);
+		aabb.max.y = (std::max)(aabb.min.y, aabb.max.y);
+		aabb.min.z = (std::min)(aabb.min.z, aabb.max.z);
+		aabb.max.z = (std::max)(aabb.min.z, aabb.max.z);
+
+
+		// AABBと球の衝突判定
+		if (IsCollision(aabb, sphere)) {
+			colors[0] = RED; // 衝突している場合は赤色
+		} else {
+			colors[0] = WHITE; // 衝突していない場合は白色
+		}
 
 
 #ifdef _DEBUG
@@ -313,7 +346,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
+		// AABBの描画
+		DrawAABB(aabb, viewProjectionMatrix, viewportMatrix, colors[0]);
 
+		// 球の描画
+		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, colors[1]);
 
 
 #ifdef _DEBUG
@@ -321,6 +358,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::Begin("Window");
 		ImGui::DragFloat3("CameraTranslate", &cameraTranslate.x, 0.01f);
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
+		
+		ImGui::Separator();
+
+		ImGui::Text("AABB");
+
+		ImGui::DragFloat3("aabb.min", &aabb.min.x, 0.01f);
+		ImGui::DragFloat3("aabb.max", &aabb.max.x, 0.01f);
+		
+		ImGui::Separator();
+
+		ImGui::Text("Sphere");
+
+		ImGui::DragFloat3("sphere.center", &sphere.center.x, 0.01f);
+		ImGui::DragFloat("sphere.radius", &sphere.radius, 0.01f);
+
 		ImGui::End();
 
 #endif // _DEBUG
@@ -759,6 +811,23 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 				static_cast<int>(screenEnd.x), static_cast<int>(screenEnd.y), 0xAAAAAAFF);
 		}
 	}
+}
+
+// AABBと球の衝突判定関数
+bool IsCollision(const AABB& aabb, const Sphere& sphere) {
+	// AABBと球の最近接点を求める
+	Vector3 closestPoint{
+		std::clamp(sphere.center.x, aabb.min.x, aabb.max.x),
+		std::clamp(sphere.center.y, aabb.min.y, aabb.max.y),
+		std::clamp(sphere.center.z, aabb.min.z, aabb.max.z)
+	};
+	// 最近接点と球の中心との距離を求める
+	float distance = Length(Subtract(closestPoint, sphere.center));
+	// 距離が半径よりも小さければ衝突
+	if (distance <= sphere.radius) {
+		return true; // 衝突している
+	}
+	return false; // 衝突していない
 }
 
 // 逆行列
