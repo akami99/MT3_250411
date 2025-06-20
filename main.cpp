@@ -144,6 +144,9 @@ Vector3 Normalize(const Vector3& v);
 /// <returns>変換させた座標</returns>
 Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix);
 
+// 線形補間
+Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t);
+
 /// <summary>
 /// X軸回転行列
 /// </summary>
@@ -246,6 +249,10 @@ void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const 
 /// <param name="viewportMatrix">ビューポート行列</param>
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
 
+// ベジエ曲線の描画関数
+void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2,
+	const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+
 /// <summary>
 /// 逆行列
 /// </summary>
@@ -262,7 +269,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, kWindowWidth, kWindowHeight);
 
-	
+
+	// ベジエ曲線の制御点
+	Vector3 controlPoints[3] = {
+		{ -0.8f, 0.58f, 1.0f },
+		{ 1.76f, 1.0f, -0.3f },
+		{ 0.94f, -0.7f, 2.3f }
+	};
+
 
 	// カメラの設定
 	Vector3 cameraTranslate{ 0.0f, 1.9f, -6.49f };
@@ -276,8 +290,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, static_cast<float>(kWindowWidth), static_cast<float>(kWindowHeight), 0.0f, 1.0f);
 
 	// キー入力結果を受け取る箱
-	char keys[256] = {0};
-	char preKeys[256] = {0};
+	char keys[256] = { 0 };
+	char preKeys[256] = { 0 };
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -313,14 +327,28 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
+		// ベジエ曲線を描画
+		DrawBezier(controlPoints[0], controlPoints[1], controlPoints[2], viewProjectionMatrix, viewportMatrix, BLUE);
 
-
+		// 制御点を描画
+		for (int i = 0; i < 3; ++i) {
+			DrawSphere(Sphere(controlPoints[i], 0.01f), viewProjectionMatrix, viewportMatrix, BLACK);
+		}
 
 #ifdef _DEBUG
 		// デバッグウィンドウ
 		ImGui::Begin("Window");
+		ImGui::Text("Camera");
 		ImGui::DragFloat3("CameraTranslate", &cameraTranslate.x, 0.01f);
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
+
+		ImGui::Separator();
+
+		ImGui::Text("Bezier");
+		ImGui::DragFloat3("controlPoints[0]", &controlPoints[0].x, 0.01f);
+		ImGui::DragFloat3("controlPoints[1]", &controlPoints[1].x, 0.01f);
+		ImGui::DragFloat3("controlPoints[2]", &controlPoints[2].x, 0.01f);
+
 		ImGui::End();
 
 #endif // _DEBUG
@@ -469,6 +497,15 @@ Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix) {
 	result.x /= w;  // w=1がデカルト座標系であるので、w除算することで同次座標をデカルト座標に戻す
 	result.y /= w;
 	result.z /= w;
+	return result;
+}
+
+// 線形補間
+Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t) {
+	Vector3 result{};
+	result.x = (1 - t) * v1.x + t * v2.x;
+	result.y = (1 - t) * v1.y + t * v2.y;
+	result.z = (1 - t) * v1.z + t * v2.z;
 	return result;
 }
 
@@ -758,6 +795,49 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 			Novice::DrawLine(static_cast<int>(screenStart.x), static_cast<int>(screenStart.y),
 				static_cast<int>(screenEnd.x), static_cast<int>(screenEnd.y), 0xAAAAAAFF);
 		}
+	}
+}
+
+// ベジエ曲線の描画関数
+void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2,
+	const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	float t = 0;
+
+	// 制御点p0,p1を線形補間
+	Vector3 p0p1 = Lerp(controlPoint0, controlPoint1, t);
+	// 制御点p1,p2を線形補間
+	Vector3 p1p2 = Lerp(controlPoint1, controlPoint2, t);
+	// 線形補間p0p1,p1p2をさらに線形補間
+	Vector3 p = Lerp(p0p1, p1p2, t);
+
+	// スクリーン座標系に変換
+	Vector3 screenStartPoint = Transform(Transform(controlPoint0, viewProjectionMatrix), viewportMatrix);
+	Vector3 ScreenEndPoint = screenStartPoint;
+
+	while (t <= 1) {
+		screenStartPoint = ScreenEndPoint; // 前の終点を次の始点にする
+
+		// 制御点p0,p1を線形補間
+		p0p1 = Lerp(controlPoint0, controlPoint1, t);
+		// 制御点p1,p2を線形補間
+		p1p2 = Lerp(controlPoint1, controlPoint2, t);
+		// 線形補間p0p1,p1p2をさらに線形補間
+		p = Lerp(p0p1, p1p2, t);
+
+		// スクリーン座標系に変換
+		ScreenEndPoint = Transform(Transform(p, viewProjectionMatrix), viewportMatrix);
+
+		// 描画
+
+		Novice::DrawLine(
+			static_cast<int>(screenStartPoint.x),
+			static_cast<int>(screenStartPoint.y),
+			static_cast<int>(ScreenEndPoint.x),
+			static_cast<int>(ScreenEndPoint.y),
+			color
+		);
+
+		t += 0.01f;
 	}
 }
 
