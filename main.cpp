@@ -254,7 +254,7 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 Matrix4x4 Inverse(const Matrix4x4& m);
 
 
-const char kWindowTitle[] = "LE2B_01_アカミネ_レン_MT3_";
+const char kWindowTitle[] = "LE2B_01_アカミネ_レン_MT3_03-01";
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -275,6 +275,48 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, static_cast<float>(kWindowWidth), static_cast<float>(kWindowHeight), 0.0f, 1.0f);
 
+
+	// 腕の関節の初期値
+	Vector3 translates[3] = {
+		{ 0.2f, 1.0f, 0.0f },  // 肩
+		{ 0.4f, 0.0f, 0.0f },  // 肘
+		{ 0.3f, 0.0f, 0.0f }   // 手
+	};
+
+	Vector3 rotates[3] = {
+		{ 0.0f, 0.0f, -6.8f }, // 肩
+		{ 0.0f, 0.0f, -1.4f }, // 肘
+		{ 0.0f, 0.0f, 0.0f }   // 手
+	};
+
+	Vector3 scales[3] = {
+		{ 1.0f, 1.0f, 1.0f },  // 肩
+		{ 1.0f, 1.0f, 1.0f },  // 肘
+		{ 1.0f, 1.0f, 1.0f }   // 手
+	};
+
+	// 腕の関節の行列を計算
+	Matrix4x4 LocalShoulderMatrix = MakeAffineMatrix(scales[0], rotates[0], translates[0]);
+	Matrix4x4 LocalElbowMatrix = MakeAffineMatrix(scales[1], rotates[1], translates[1]);
+	Matrix4x4 LocalHandMatrix = MakeAffineMatrix(scales[2], rotates[2], translates[2]);
+
+	// 腕の関節のワールド行列を計算
+	Matrix4x4 WorldShoulderMatrix = LocalShoulderMatrix; // 肩はローカル行列と同じ
+	Matrix4x4 WorldElbowMatrix = Multiply(LocalElbowMatrix, WorldShoulderMatrix); // 肘はローカル行列と肩のワールド行列の積
+	Matrix4x4 WorldHandMatrix = Multiply(LocalHandMatrix, WorldElbowMatrix); // 手はローカル行列と肘のワールド行列の積
+
+	// 各関節のワールド座標系の位置を計算
+	Vector3 worldShoulderPosition = { WorldShoulderMatrix.m[3][0], WorldShoulderMatrix.m[3][1], WorldShoulderMatrix.m[3][2] };
+	Vector3 worldElbowPosition = { WorldElbowMatrix.m[3][0], WorldElbowMatrix.m[3][1], WorldElbowMatrix.m[3][2] };
+	Vector3 worldHandPosition = { WorldHandMatrix.m[3][0], WorldHandMatrix.m[3][1], WorldHandMatrix.m[3][2] };
+
+	// 腕の関節のスクリーン座標系での変換量を計算
+	Vector3 screenShoulderTranslate = Transform(Transform(worldShoulderPosition, viewProjectionMatrix), viewportMatrix);
+	Vector3 screenElbowTranslate = Transform(Transform(worldElbowPosition, viewProjectionMatrix), viewportMatrix);
+	Vector3 screenHandTranslate = Transform(Transform(worldHandPosition, viewProjectionMatrix), viewportMatrix);
+
+
+
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
 	char preKeys[256] = {0};
@@ -293,6 +335,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 
+		// 腕の関節の行列を計算
+		LocalShoulderMatrix = MakeAffineMatrix(scales[0], rotates[0], translates[0]);
+		LocalElbowMatrix = MakeAffineMatrix(scales[1], rotates[1], translates[1]);
+		LocalHandMatrix = MakeAffineMatrix(scales[2], rotates[2], translates[2]);
+
+		// 腕の関節のワールド行列を計算
+		WorldShoulderMatrix = LocalShoulderMatrix;
+		WorldElbowMatrix = Multiply(LocalElbowMatrix, WorldShoulderMatrix);
+		WorldHandMatrix = Multiply(LocalHandMatrix, WorldElbowMatrix);
+
+		// 各関節のワールド座標系の位置を計算
+		worldShoulderPosition = { WorldShoulderMatrix.m[3][0], WorldShoulderMatrix.m[3][1], WorldShoulderMatrix.m[3][2] };
+		worldElbowPosition = { WorldElbowMatrix.m[3][0], WorldElbowMatrix.m[3][1], WorldElbowMatrix.m[3][2] };
+		worldHandPosition = { WorldHandMatrix.m[3][0], WorldHandMatrix.m[3][1], WorldHandMatrix.m[3][2] };
+
+		// 腕の関節のスクリーン座標系での変換量を計算
+		screenShoulderTranslate = Transform(Transform(worldShoulderPosition, viewProjectionMatrix), viewportMatrix);
+		screenElbowTranslate = Transform(Transform(worldElbowPosition, viewProjectionMatrix), viewportMatrix);
+		screenHandTranslate = Transform(Transform(worldHandPosition, viewProjectionMatrix), viewportMatrix);
 
 #ifdef _DEBUG
 		// カメラの更新
@@ -313,7 +374,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
+		// 腕の描画
+		DrawSphere({ worldShoulderPosition, 0.05f }, viewProjectionMatrix, viewportMatrix, RED); // 赤色の球を描画
 
+		DrawSphere({ worldElbowPosition, 0.05f }, viewProjectionMatrix, viewportMatrix, GREEN); // 緑色の球を描画
+
+		DrawSphere({ worldHandPosition, 0.05f }, viewProjectionMatrix, viewportMatrix, BLUE); // 青色の球を描画
+
+		// 腕の関節を線でつなぐ
+		Novice::DrawLine(static_cast<int>(screenShoulderTranslate.x), static_cast<int>(screenShoulderTranslate.y),
+			static_cast<int>(screenElbowTranslate.x), static_cast<int>(screenElbowTranslate.y), WHITE); // 白い線を描画
+
+		Novice::DrawLine(static_cast<int>(screenElbowTranslate.x), static_cast<int>(screenElbowTranslate.y),
+			static_cast<int>(screenHandTranslate.x), static_cast<int>(screenHandTranslate.y), WHITE); // 白い線を描画
 
 
 #ifdef _DEBUG
@@ -322,6 +395,26 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::Text("Camera");
 		ImGui::DragFloat3("CameraTranslate", &cameraTranslate.x, 0.01f);
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
+
+		ImGui::Separator();
+
+		ImGui::Text("Shoulder");
+		ImGui::DragFloat3("ShoulderTranslate", &translates[0].x, 0.01f);
+		ImGui::DragFloat3("ShoulderRotate", &rotates[0].x, 0.01f);
+		ImGui::DragFloat3("ShoulderScale", &scales[0].x, 0.01f);
+
+		ImGui::Text("Elbow");
+		ImGui::DragFloat3("ElbowTranslate", &translates[1].x, 0.01f);
+		ImGui::DragFloat3("ElbowRotate", &rotates[1].x, 0.01f);
+		ImGui::DragFloat3("ElbowScale", &scales[1].x, 0.01f);
+
+		ImGui::Text("Hand");
+		ImGui::DragFloat3("HandTranslate", &translates[2].x, 0.01f);
+		ImGui::DragFloat3("HandRotate", &rotates[2].x, 0.01f);
+		ImGui::DragFloat3("HandScale", &scales[2].x, 0.01f);
+
+
+
 		ImGui::End();
 
 #endif // _DEBUG
