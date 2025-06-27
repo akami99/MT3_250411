@@ -75,20 +75,36 @@ void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label);
 void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label);
 
 /// <summary>
-/// 加算
+/// ベクトルの加算
+/// </summary>
+/// <param name="v1">ベクトル1</param>
+/// <param name="v2">ベクトル2</param>
+/// <returns>ベクトルの和</returns>
+Vector3 Add(const Vector3& v1, const Vector3& v2);
+
+/// <summary>
+/// 4x4行列の加算
 /// </summary>
 /// <param name="v1">行列1</param>
 /// <param name="v2">行列2</param>
 /// <returns>行列の和</returns>
-Vector3 Add(const Vector3& v1, const Vector3& v2);
+Matrix4x4 Add(const Matrix4x4& m1, const Matrix4x4& m2);
 
 /// <summary>
-/// 減算
+/// ベクトルの減算
 /// </summary>
 /// <param name="v1">引かれるベクトル</param>
 /// <param name="v2">引くベクトル</param>
 /// <returns>ベクトルの差</returns>
 Vector3 Subtract(const Vector3& v1, const Vector3& v2);
+
+/// <summary>
+/// 4x4行列の減算
+/// </summary>
+/// <param name="v1">引かれる4x4行列</param>
+/// <param name="v2">引く4x4行列</param>
+/// <returns>4x4行列の差</returns>
+Matrix4x4 Subtract(const Matrix4x4& m1, const Matrix4x4& m2);
 
 /// <summary>
 /// 4x4行列の積
@@ -105,6 +121,14 @@ Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2);
 /// <param name="vector">掛けるベクトル</param>
 /// <returns>ベクトルの積</returns>
 Vector3 Multiply(const float& scalar, const Vector3& vector);
+
+/// <summary>
+/// スカラーと4x4行列の積
+/// </summary>
+/// <param name="scalar">掛けるスカラー</param>
+/// <param name="vector">掛ける4x4行列</param>
+/// <returns>4x4行列の積</returns>
+Matrix4x4 Multiply(const float& scalar, const Matrix4x4& vector);
 
 /// <summary>
 /// 内積
@@ -253,8 +277,36 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 /// <returns>逆行列</returns>
 Matrix4x4 Inverse(const Matrix4x4& m);
 
+// 演算子オーバーロード
 
-const char kWindowTitle[] = "LE2B_01_アカミネ_レン_MT3_";
+Vector3 operator+(const Vector3& v1, const Vector3& v2) {
+	return Add(v1, v2);
+}
+Vector3 operator-(const Vector3& v1, const Vector3& v2) {
+	return Subtract(v1, v2);
+}
+Vector3 operator*(float s, const Vector3& v) {
+	return Multiply(s, v);
+}
+Vector3 operator*(const Vector3& v, float s) {
+	return s * v;
+}
+Vector3 operator/(const Vector3& v, float s) {
+	return { Multiply(1.0f / s, v) };
+}
+Matrix4x4 operator+(const Matrix4x4& m1, const Matrix4x4& m2) {
+	return Add(m1, m2);
+}
+Matrix4x4 operator-(const Matrix4x4& m1, const Matrix4x4& m2) {
+	return Subtract(m1, m2);
+}
+Matrix4x4 operator*(const Matrix4x4& m1, const Matrix4x4& m2) {
+	return Multiply(m1, m2);
+}
+
+
+
+const char kWindowTitle[] = "LE2B_01_アカミネ_レン_MT3_03-02";
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -262,7 +314,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, kWindowWidth, kWindowHeight);
 
-	
+
+	// 演算子オーバーロードのテスト用コード
+	Vector3 a{ 0.2f, 1.0f, 0.0f };
+	Vector3 b{ 2.4f, 3.1f, 1.2f };
+	Vector3 c = a + b;
+	Vector3 d = a - b;
+	Vector3 e = a * 2.4f;
+	Vector3 rotate{ 0.4f, 1.43f, -0.8f };
+	Matrix4x4 rotateXMatrix = MakeRotateXMatrix(rotate.x);
+	Matrix4x4 rotateYMatrix = MakeRotateYMatrix(rotate.y);
+	Matrix4x4 rotateZMatrix = MakeRotateZMatrix(rotate.z);
+	Matrix4x4 rotateMatrix = rotateXMatrix * rotateYMatrix * rotateZMatrix;
+
 
 	// カメラの設定
 	Vector3 cameraTranslate{ 0.0f, 1.9f, -6.49f };
@@ -276,8 +340,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, static_cast<float>(kWindowWidth), static_cast<float>(kWindowHeight), 0.0f, 1.0f);
 
 	// キー入力結果を受け取る箱
-	char keys[256] = {0};
-	char preKeys[256] = {0};
+	char keys[256] = { 0 };
+	char preKeys[256] = { 0 };
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -318,10 +382,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #ifdef _DEBUG
 		// デバッグウィンドウ
-		ImGui::Begin("Window");
+		/*ImGui::Begin("Window");
 		ImGui::Text("Camera");
 		ImGui::DragFloat3("CameraTranslate", &cameraTranslate.x, 0.01f);
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
+		ImGui::End();*/
+
+		ImGui::Begin("Window");
+		ImGui::Text("c:%f, %f, %f", c.x, c.y, c.z);
+		ImGui::Text("d:%f, %f, %f", d.x, d.y, d.z);
+		ImGui::Text("e:%f, %f, %f", e.x, e.y, e.z);
+		ImGui::Text(
+			"matrix:\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n",
+			rotateMatrix.m[0][0], rotateMatrix.m[0][1], rotateMatrix.m[0][2],
+			rotateMatrix.m[0][3], rotateMatrix.m[1][0], rotateMatrix.m[1][1],
+			rotateMatrix.m[1][2], rotateMatrix.m[1][3], rotateMatrix.m[2][0],
+			rotateMatrix.m[2][1], rotateMatrix.m[2][2], rotateMatrix.m[2][3],
+			rotateMatrix.m[3][0], rotateMatrix.m[3][1], rotateMatrix.m[3][2],
+			rotateMatrix.m[3][3]);
 		ImGui::End();
 
 #endif // _DEBUG
@@ -363,7 +441,7 @@ void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label
 	}
 }
 
-// 加算
+// ベクトルの加算
 Vector3 Add(const Vector3& v1, const Vector3& v2) {
 	Vector3 result;
 	result.x = v1.x + v2.x;
@@ -372,12 +450,34 @@ Vector3 Add(const Vector3& v1, const Vector3& v2) {
 	return result;
 }
 
-// 減算
+// 4x4行列の加算
+Matrix4x4 Add(const Matrix4x4& m1, const Matrix4x4& m2) {
+	Matrix4x4 result;
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			result.m[i][j] = m1.m[i][j] + m2.m[i][j];
+		}
+	}
+	return result;
+}
+
+// ベクトルの減算
 Vector3 Subtract(const Vector3& v1, const Vector3& v2) {
 	Vector3 result;
 	result.x = v1.x - v2.x;
 	result.y = v1.y - v2.y;
 	result.z = v1.z - v2.z;
+	return result;
+}
+
+// 4x4行列の減算
+Matrix4x4 Subtract(const Matrix4x4& m1, const Matrix4x4& m2) {
+	Matrix4x4 result;
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			result.m[i][j] = m1.m[i][j] - m2.m[i][j];
+		}
+	}
 	return result;
 }
 
@@ -401,6 +501,17 @@ Vector3 Multiply(const float& scalar, const Vector3& vector) {
 	result.x = scalar * vector.x;
 	result.y = scalar * vector.y;
 	result.z = scalar * vector.z;
+	return result;
+}
+
+// スカラーと4x4行列の積
+Matrix4x4 Multiply(const float& scalar, const Matrix4x4& vector) {
+	Matrix4x4 result = {};
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			result.m[i][j] = scalar * vector.m[i][j];
+		}
+	}
 	return result;
 }
 
