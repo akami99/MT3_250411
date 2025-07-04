@@ -14,6 +14,12 @@
     <Filter Include="KamataEngine\Adapter">
       <UniqueIdentifier>{c6468eb4-788b-4a83-b207-a5f4804e56c5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SourceFile">
+      <UniqueIdentifier>{89d9c2f7-93c5-477d-af18-c44884285c59}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HeaderFile">
+      <UniqueIdentifier>{5d4b73bd-fe86-4586-8a12-9dfba4c6c95a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="C:\KamataEngine\DirectXGame\base\DirectXCommon.cpp">
@@ -28,7 +34,6 @@
     <ClCompile Include="C:\KamataEngine\DirectXGame\base\WinApp.cpp">
       <Filter>KamataEngine\Source</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp" />
     <ClCompile Include="C:\KamataEngine\Adapter\Novice.cpp">
       <Filter>KamataEngine\Adapter</Filter>
     </ClCompile>
@@ -37,6 +42,21 @@
     </ClCompile>
     <ClCompile Include="C:\KamataEngine\DirectXGame\base\StringUtility.cpp">
       <Filter>KamataEngine\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>SourceFile</Filter>
+    </ClCompile>
+    <ClCompile Include="EngineMathFunctions.cpp">
+      <Filter>SourceFile</Filter>
+    </ClCompile>
+    <ClCompile Include="MatrixGenerators.cpp">
+      <Filter>SourceFile</Filter>
+    </ClCompile>
+    <ClCompile Include="DebugRenderer.cpp">
+      <Filter>SourceFile</Filter>
+    </ClCompile>
+    <ClCompile Include="MyDebugCamera.cpp">
+      <Filter>SourceFile</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -110,6 +130,24 @@
     <ClInclude Include="C:\KamataEngine\DirectXGame\2d\ImGuiManager.h" />
     <ClInclude Include="C:\KamataEngine\DirectXGame\base\StringUtility.h">
       <Filter>KamataEngine\Include</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineMath.h">
+      <Filter>HeaderFile</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineMathFunctions.h">
+      <Filter>HeaderFile</Filter>
+    </ClInclude>
+    <ClInclude Include="MatrixGenerators.h">
+      <Filter>HeaderFile</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugRenderer.h">
+      <Filter>HeaderFile</Filter>
+    </ClInclude>
+    <ClInclude Include="MyDebugCamera.h">
+      <Filter>HeaderFile</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationConfig.h">
+      <Filter>HeaderFile</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

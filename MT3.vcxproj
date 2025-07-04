@@ -115,9 +115,14 @@ xcopy C:\KamataEngine\DirectXGame\Resources "$(OutDirFullPath)NoviceResources" /
     <ClCompile Include="C:\KamataEngine\DirectXGame\base\TextureManager.cpp" />
     <ClCompile Include="C:\KamataEngine\DirectXGame\2d\ImGuiManager.cpp" />
     <ClCompile Include="C:\KamataEngine\Adapter\Novice.cpp" />
+    <ClCompile Include="DebugRenderer.cpp" />
+    <ClCompile Include="EngineMathFunctions.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MatrixGenerators.cpp" />
+    <ClCompile Include="MyDebugCamera.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ApplicationConfig.h" />
     <ClInclude Include="C:\KamataEngine\DirectXGame\base\StringUtility.h" />
     <ClInclude Include="C:\KamataEngine\DirectXGame\math\Matrix4x4.h" />
     <ClInclude Include="C:\KamataEngine\DirectXGame\math\Vector2.h" />
@@ -145,6 +150,11 @@ xcopy C:\KamataEngine\DirectXGame\Resources "$(OutDirFullPath)NoviceResources" /
     <ClInclude Include="C:\KamataEngine\DirectXGame\input\Input.h" />
     <ClInclude Include="C:\KamataEngine\DirectXGame\scene\GameScene.h" />
     <ClInclude Include="C:\KamataEngine\Adapter\Novice.h" />
+    <ClInclude Include="DebugRenderer.h" />
+    <ClInclude Include="EngineMath.h" />
+    <ClInclude Include="EngineMathFunctions.h" />
+    <ClInclude Include="MatrixGenerators.h" />
+    <ClInclude Include="MyDebugCamera.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
