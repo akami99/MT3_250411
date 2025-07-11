@@ -14,6 +14,10 @@ MyDebugCamera::MyDebugCamera() : cameraTranslate_{ 0.0f, 1.9f, -6.49f }, cameraR
     viewportMatrix_ = MakeViewportMatrix(0.0f, 0.0f, static_cast<float>(kWindowWidth), static_cast<float>(kWindowHeight), 0.0f, 1.0f);
 }
 
+Vector3 MyDebugCamera::WorldToScreen(const Vector3& worldPos) const {
+	return Transform(Transform(worldPos, viewProjectionMatrix_), viewportMatrix_);
+}
+
 void MyDebugCamera::Update() {
 #ifdef _DEBUG
     // カメラの更新
