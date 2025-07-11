@@ -11,6 +11,8 @@ public:
     // コンストラクタ
     MyDebugCamera();
 
+	Vector3 WorldToScreen(const Vector3& worldPos);
+
     // 更新処理
     void Update();
 

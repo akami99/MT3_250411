@@ -147,6 +147,12 @@ inline Vector3 operator*(const Vector3& v, float s) {
 inline Vector3 operator/(const Vector3& v, float s) {
 	return { Multiply(1.0f / s, v) };
 }
+inline Vector3 operator+=(Vector3& v1, const Vector3& v2) {
+	v1.x += v2.x;
+	v1.y += v2.y;
+	v1.z += v2.z;
+	return v1;
+}
 inline Matrix4x4 operator+(const Matrix4x4& m1, const Matrix4x4& m2) {
 	return Add(m1, m2);
 }
