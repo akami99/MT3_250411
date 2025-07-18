@@ -5,6 +5,14 @@
 
 // 各種デバッグ用形状の描画
 
+// 線を描画する関数
+void DrawLine(const Vector3& start, const Vector3& end, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	Vector3 screenStart = Transform(Transform(start, viewProjectionMatrix), viewportMatrix);
+	Vector3 screenEnd = Transform(Transform(end, viewProjectionMatrix), viewportMatrix);
+	Novice::DrawLine(static_cast<int>(screenStart.x), static_cast<int>(screenStart.y),
+		static_cast<int>(screenEnd.x), static_cast<int>(screenEnd.y), color);
+}
+
 // 球を描画する関数
 void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
 	const uint32_t kSubdivision = 12;   // 分割数

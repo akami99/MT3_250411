@@ -13,6 +13,16 @@ static const int kColumnWidth = 60;
 // 各種デバッグ用形状の描画
 
 /// <summary>
+/// 線を描画する関数
+/// </summary>
+/// <param name="start">始点</param>
+/// <param name="end">終点</param>
+/// <param name="viewProjectionMatrix">ビュー射影行列</param>
+/// <param name="viewportMatrix">ビューポート行列</param>
+/// <param name="color">色</param>
+void DrawLine(const Vector3& start, const Vector3& end, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+
+/// <summary>
 /// 球を描画する関数
 /// </summary>
 /// <param name="sphere">球</param>
