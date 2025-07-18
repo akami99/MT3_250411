@@ -84,6 +84,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			conicalPendulum.angularVelocity = std::sqrtf(gravity / conicalPendulum.length * std::cos(conicalPendulum.halfApexAngle));
 			conicalPendulum.angle += conicalPendulum.angularVelocity * kDeltaTime;
 			// おもりの位置を更新
+			radius = std::sin(conicalPendulum.halfApexAngle) * conicalPendulum.length;
+			height = std::cos(conicalPendulum.halfApexAngle) * conicalPendulum.length;
+			
 			ball.position.x = conicalPendulum.anchor.x + std::cos(conicalPendulum.angle) * radius;
 			ball.position.y = conicalPendulum.anchor.y - height;
 			ball.position.z = conicalPendulum.anchor.z - std::sin(conicalPendulum.angle) * radius;
@@ -130,6 +133,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (ImGui::Button("Start")) {
 			isSwing = !isSwing;
 		}
+		ImGui::DragFloat("Length", &conicalPendulum.length, 0.01f, 0.1f, 2.0f);
+		ImGui::DragFloat("HalfApexAngle", &conicalPendulum.halfApexAngle, 0.01f, 0.0f, 1.5f);
 		ImGui::End();
 
 #endif // _DEBUG
