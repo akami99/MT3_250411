@@ -78,6 +78,17 @@ Vector3 Perpendicular(const Vector3& vector) {
 	return { 0.0f, -vector.z, vector.y };
 }
 
+// 反射ベクトルを求める関数
+Vector3 Reflect(const Vector3& input, const Vector3& normal) {
+	Vector3 normalizedNormal = Normalize(normal);
+	float dotProduct = Dot(input, normalizedNormal);
+	Vector3 result;
+	result.x = input.x - 2 * dotProduct * normalizedNormal.x;
+	result.y = input.y - 2 * dotProduct * normalizedNormal.y;
+	result.z = input.z - 2 * dotProduct * normalizedNormal.z;
+	return result;
+}
+
 // 基本的な行列演算
 
 // 4x4行列の加算

@@ -68,6 +68,14 @@ Vector3 Normalize(const Vector3& v);
 /// <returns>垂直なベクトル</returns>
 Vector3 Perpendicular(const Vector3& vector);
 
+/// <summary>
+/// 反射ベクトルを求める関数
+/// </summary>
+/// <param name="input">入射ベクトル</param>
+/// <param name="normal">法線(正規化していないもの)</param>
+/// <returns>反射ベクトル</returns>
+Vector3 Reflect(const Vector3& input, const Vector3& normal);
+
 // 基本的な行列演算
 
 /// <summary>
