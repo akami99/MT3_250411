@@ -89,6 +89,23 @@ Vector3 Reflect(const Vector3& input, const Vector3& normal) {
 	return result;
 }
 
+// 球との衝突判定を行う関数
+bool IsCollision(const Sphere& sphere, const Plane& plane) {
+	// 平面の法線ベクトルを正規化
+	Vector3 normal = Normalize(plane.normal);
+	// 球の中心から平面までの距離を計算
+	float distance = Dot(plane.normal, sphere.center) + plane.distance;
+	// 球の半径と平面までの距離を比較
+	return distance <= sphere.radius;
+}
+
+// ベクトルを法線方向に投影する関数
+Vector3 Project(const Vector3& vector, const Vector3& normal) {
+	// ベクトルを法線方向に投影する
+	float dotProduct = Dot(vector, normal);
+	return normal * dotProduct;
+}
+
 // 基本的な行列演算
 
 // 4x4行列の加算

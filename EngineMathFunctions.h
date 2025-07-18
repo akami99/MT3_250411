@@ -76,6 +76,22 @@ Vector3 Perpendicular(const Vector3& vector);
 /// <returns>反射ベクトル</returns>
 Vector3 Reflect(const Vector3& input, const Vector3& normal);
 
+/// <summary>
+/// 球との衝突判定を行う関数
+/// </summary>
+/// <param name="sphere">球</param>
+/// <param name="plane">平面</param>
+/// <returns>衝突判定</returns>
+bool IsCollision(const Sphere& sphere, const Plane& plane);
+
+/// <summary>
+/// ベクトルを法線方向に投影する関数
+/// </summary>
+/// <param name="vector">ベクトル</param>
+/// <param name="normal">法線(正規化していないもの)</param>
+/// <returns>投影ベクトル</returns>
+Vector3 Project(const Vector3& vector, const Vector3& normal);
+
 // 基本的な行列演算
 
 /// <summary>
